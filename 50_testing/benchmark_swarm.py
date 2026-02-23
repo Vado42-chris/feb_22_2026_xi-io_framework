@@ -117,7 +117,9 @@ def run_swarm_benchmark():
         })
 
     # --- STAGE 3: CERTIFICATION ---
-    report_path = ROOT / "40_documentation" / "certificates" / "swarm_benchmark_report.json"
+    cert_dir = ROOT / "40_documentation" / "certificates"
+    cert_dir.mkdir(parents=True, exist_ok=True)
+    report_path = cert_dir / "swarm_benchmark_report.json"
     report_data = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "framework_version": "8.9.9.9.28.2.2",
