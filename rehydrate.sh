@@ -31,6 +31,8 @@ if command -v ollama >/dev/null 2>&1; then
     # Lazy pull models to ensure rehydration
     ollama pull xibalba:latest
     ollama pull llama3.1:8b
+    ollama pull codellama:latest
+    ollama pull phi3.5:latest
 else
     echo "[!] WARNING: Ollama not found. Neural operations will be degraded."
 fi
