@@ -90,6 +90,7 @@ class OptimizedOrchestrator:
             "You are executing autonomous industrial code operations. "
             "Return complete, actionable output with no placeholders."
         )
+        system_msg = f"{SYSTEM_IDENTITY_XI}\n\n{COLLABORATOR_DIRECTIVE}"
         model, messages, options = self.build_model_payload(
             system_prompt=system_msg,
             user_content=prompt,
