@@ -247,34 +247,53 @@ class XIUtils:
             return "Diff not available"
     
     def count_lines(self, pattern="*.py"):
-        """Count lines of code (Industrial Count)"""
+        """Count lines of code without scanning recursive/system-heavy paths."""
         total = 0
         files = 0
-        try:
-            # Use grep -r for industrial speed if pattern is simple
-            if pattern == "*" or pattern == "**/*":
-                result = subprocess.run(
-                    ['grep', '-r', '-c', '^', str(self.working_dir)],
-                    capture_output=True, text=True, timeout=10
-                )
-                for line in result.stdout.splitlines():
-                    if ':' in line:
-                        filepath, count = line.rsplit(':', 1)
-                        if self._is_safe(Path(filepath)):
-                            total += int(count)
-                            files += 1
-                return {'files': files, 'lines': total}
-        except: pass
+        ignored = ['!.git/*', '!.venv/*', '!node_modules/*', '!__pycache__/*']
 
-        # Fallback
+        try:
+            # Fast path for wide scans: use ripgrep with strict excludes.
+            if pattern == "*" or pattern == "**/*":
+                cmd = ['rg', '--files']
+                for glob in ['*'] + ignored:
+                    cmd.extend(['-g', glob])
+                result = subprocess.run(
+                    cmd,
+                    cwd=self.working_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=8,
+                    check=False,
+                )
+                candidates = [
+                    (Path(self.working_dir) / line).resolve()
+                    for line in result.stdout.splitlines()
+                    if line.strip()
+                ]
+                for filepath in candidates:
+                    if not filepath.is_file():
+                        continue
+                    if self._is_safe(filepath):
+                        try:
+                            total += len(filepath.read_text(errors='ignore').splitlines())
+                            files += 1
+                        except Exception:
+                            continue
+                return {'files': files, 'lines': total}
+        except Exception:
+            pass
+
+        # Fallback for explicit globs
         for f in Path(self.working_dir).glob(pattern):
             if f.is_file() and self._is_safe(f):
                 try:
-                    lines = len(f.read_text(errors='ignore').split('\n'))
-                    total += lines
+                    total += len(f.read_text(errors='ignore').splitlines())
                     files += 1
-                except: pass
-            if files > 100: break # Safety cap
+                except Exception:
+                    pass
+            if files > 200:  # Safety cap
+                break
         return {'files': files, 'lines': total}
     
     def quick_server(self, port=8000):
